@@ -25,3 +25,27 @@ export interface PatientSummary {
   totalMedicinesToday: number;
   takenCount: number;
 }
+
+// DTO: bentuk JSON mentah dari server (json-server). Field created_at/updated_at
+// tidak dibutuhkan UI dan dibuang saat mapping (src/services/ontimehealth-api.ts).
+export interface MedicineDTO {
+  id: number; // json-server memakai id numerik
+  name: string;
+  dosage: string;
+  time: string;
+  category: 'Pagi' | 'Siang' | 'Malam' | 'Custom';
+  status: 'diminum' | 'menunggu' | 'terlewat';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CaregiverDTO {
+  id: number;
+  name: string;
+  phone: string;
+  relation: string;
+  status: 'online' | 'offline';
+  created_at: string;
+  updated_at: string;
+}

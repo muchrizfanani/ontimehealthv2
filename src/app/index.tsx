@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Platform,
   Pressable,
@@ -12,67 +13,51 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { fetchCaregivers, fetchMedicines } from '@/services/ontimehealth-api';
 import { Caregiver, Medicine, UserRole } from '@/types/ontimehealth';
-
-// Data Mock untuk Demonstrasi Task 01
-const MOCK_MEDICINES: Medicine[] = [
-  {
-    id: '1',
-    name: 'Paracetamol 500mg',
-    dosage: '1 Tablet setelah makan',
-    time: '07:00 WIB',
-    category: 'Pagi',
-    status: 'diminum',
-    notes: 'Untuk meredakan demam/nyeri',
-  },
-  {
-    id: '2',
-    name: 'Vitamin C 1000mg',
-    dosage: '1 Effervescent / hari',
-    time: '13:00 WIB',
-    category: 'Siang',
-    status: 'diminum',
-    notes: 'Dilarutkan dalam segelas air',
-  },
-  {
-    id: '3',
-    name: 'Amoxicillin 500mg',
-    dosage: '1 Kapsul sesudah makan',
-    time: '19:00 WIB',
-    category: 'Malam',
-    status: 'menunggu',
-    notes: 'Antibiotik (Harus dihabiskan)',
-  },
-  {
-    id: '4',
-    name: 'Obat Darah Tinggi (Amlodipine)',
-    dosage: '1 Tablet sebelum tidur',
-    time: '21:30 WIB',
-    category: 'Malam',
-    status: 'menunggu',
-  },
-];
-
-const MOCK_CAREGIVER: Caregiver = {
-  id: 'c1',
-  name: 'Budi Santoso (Pendamping)',
-  phone: '0812-3456-7890',
-  relation: 'Anak Kandung',
-  status: 'online',
-};
 
 export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
 
-  // State lokal untuk simulasi interaktivitas UI
   const [userRole, setUserRole] = useState<UserRole>('pasien');
-  const [medicines, setMedicines] = useState<Medicine[]>(MOCK_MEDICINES);
   const [familyCode] = useState<string>('FAM-8821');
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [medicineData, caregiverData] = await Promise.all([
+        fetchMedicines(),
+        fetchCaregivers(),
+      ]);
+      setMedicines(medicineData);
+      setCaregiver(caregiverData[0] ?? null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Terjadi kesalahan yang tidak diketahui'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Hitung Kepatuhan
   const takenCount = medicines.filter((m) => m.status === 'diminum').length;
-  const compliancePercentage = Math.round((takenCount / medicines.length) * 100);
+  const compliancePercentage =
+    medicines.length > 0
+      ? Math.round((takenCount / medicines.length) * 100)
+      : 0;
 
   const handleMarkAsTaken = (id: string) => {
     setMedicines((prev) =>
@@ -200,76 +185,98 @@ export default function HomeScreen() {
           <Text style={styles.sectionLink}>Lihat Semua</Text>
         </View>
 
-        <View style={styles.medicineList}>
-          {medicines.map((med) => {
-            const isTaken = med.status === 'diminum';
-            return (
-              <View key={med.id} style={styles.medicineCard}>
-                <View style={styles.medicineTimeBadge}>
-                  <Text style={styles.medicineTimeText}>{med.time}</Text>
-                  <Text style={styles.medicineCategoryText}>{med.category}</Text>
-                </View>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#0284C7"
+            style={styles.loadingIndicator}
+          />
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.retryBtn,
+                pressed && styles.pressedOpacity,
+              ]}
+              onPress={loadData}>
+              <Text style={styles.retryBtnText}>Coba Lagi</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.medicineList}>
+            {medicines.map((med) => {
+              const isTaken = med.status === 'diminum';
+              return (
+                <View key={med.id} style={styles.medicineCard}>
+                  <View style={styles.medicineTimeBadge}>
+                    <Text style={styles.medicineTimeText}>{med.time}</Text>
+                    <Text style={styles.medicineCategoryText}>{med.category}</Text>
+                  </View>
 
-                <View style={styles.medicineInfo}>
-                  <Text style={styles.medicineName}>{med.name}</Text>
-                  <Text style={styles.medicineDosage}>📋 {med.dosage}</Text>
-                  {med.notes && (
-                    <Text style={styles.medicineNotes}>💡 {med.notes}</Text>
-                  )}
-                </View>
+                  <View style={styles.medicineInfo}>
+                    <Text style={styles.medicineName}>{med.name}</Text>
+                    <Text style={styles.medicineDosage}>📋 {med.dosage}</Text>
+                    {med.notes && (
+                      <Text style={styles.medicineNotes}>💡 {med.notes}</Text>
+                    )}
+                  </View>
 
-                <View style={styles.medicineActionContainer}>
-                  {isTaken ? (
-                    <View style={styles.statusDoneBadge}>
-                      <Text style={styles.statusDoneText}>✓ Diminum</Text>
-                    </View>
-                  ) : (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.takeBtn,
-                        pressed && styles.pressedOpacity,
-                      ]}
-                      onPress={() => handleMarkAsTaken(med.id)}>
-                      <Text style={styles.takeBtnText}>
-                        {userRole === 'pasien' ? 'Minum' : 'Ingatkan'}
-                      </Text>
-                    </Pressable>
-                  )}
+                  <View style={styles.medicineActionContainer}>
+                    {isTaken ? (
+                      <View style={styles.statusDoneBadge}>
+                        <Text style={styles.statusDoneText}>✓ Diminum</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.takeBtn,
+                          pressed && styles.pressedOpacity,
+                        ]}
+                        onPress={() => handleMarkAsTaken(med.id)}>
+                        <Text style={styles.takeBtnText}>
+                          {userRole === 'pasien' ? 'Minum' : 'Ingatkan'}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* ==================== 6. CONTENT SECTION 2: PENDAMPING TERHUBUNG ==================== */}
         <View style={styles.sectionHeaderContainer}>
           <Text style={styles.sectionTitle}>Pendamping Terhubung</Text>
         </View>
 
-        <View style={styles.caregiverCard}>
-          <View style={styles.caregiverAvatar}>
-            <Text style={styles.caregiverAvatarText}>👨‍⚕️</Text>
-          </View>
-
-          <View style={styles.caregiverDetails}>
-            <Text style={styles.caregiverName}>{MOCK_CAREGIVER.name}</Text>
-            <Text style={styles.caregiverSub}>
-              Hubungan: {MOCK_CAREGIVER.relation} • {MOCK_CAREGIVER.phone}
-            </Text>
-            <View style={styles.onlineStatusRow}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineStatusText}>Terhubung via Supabase Cloud</Text>
+        {caregiver && (
+          <View style={styles.caregiverCard}>
+            <View style={styles.caregiverAvatar}>
+              <Text style={styles.caregiverAvatarText}>👨‍⚕️</Text>
             </View>
-          </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.callButton,
-              pressed && styles.pressedOpacity,
-            ]}>
-            <Text style={styles.callButtonText}>📞 Telepon</Text>
-          </Pressable>
-        </View>
+            <View style={styles.caregiverDetails}>
+              <Text style={styles.caregiverName}>{caregiver.name}</Text>
+              <Text style={styles.caregiverSub}>
+                Hubungan: {caregiver.relation} • {caregiver.phone}
+              </Text>
+              <View style={styles.onlineStatusRow}>
+                <View style={styles.onlineDot} />
+                <Text style={styles.onlineStatusText}>Terhubung via Supabase Cloud</Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.callButton,
+                pressed && styles.pressedOpacity,
+              ]}>
+              <Text style={styles.callButtonText}>📞 Telepon</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* ==================== 7. CONTENT SECTION 3: FEATURE GRID ==================== */}
         <View style={styles.sectionHeaderContainer}>
@@ -505,6 +512,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0284C7',
     fontWeight: '600',
+  },
+
+  /* LOADING & ERROR STATE */
+  loadingIndicator: {
+    paddingVertical: Spacing.five,
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: Spacing.four,
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  retryBtn: {
+    backgroundColor: '#0284C7',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    borderRadius: 20,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   /* MEDICINE LIST */

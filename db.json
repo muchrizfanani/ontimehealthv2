@@ -1,0 +1,58 @@
+{
+  "medicines": [
+    {
+      "id": 1,
+      "name": "Paracetamol 500mg",
+      "dosage": "1 Tablet setelah makan",
+      "time": "07:00 WIB",
+      "category": "Pagi",
+      "status": "diminum",
+      "notes": "Untuk meredakan demam/nyeri",
+      "created_at": "2026-10-01T08:00:00.000Z",
+      "updated_at": "2026-10-05T02:15:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Vitamin C 1000mg",
+      "dosage": "1 Effervescent / hari",
+      "time": "13:00 WIB",
+      "category": "Siang",
+      "status": "diminum",
+      "notes": "Dilarutkan dalam segelas air",
+      "created_at": "2026-10-01T08:00:00.000Z",
+      "updated_at": "2026-10-05T02:15:00.000Z"
+    },
+    {
+      "id": 3,
+      "name": "Amoxicillin 500mg",
+      "dosage": "1 Kapsul sesudah makan",
+      "time": "19:00 WIB",
+      "category": "Malam",
+      "status": "menunggu",
+      "notes": "Antibiotik (Harus dihabiskan)",
+      "created_at": "2026-10-01T08:00:00.000Z",
+      "updated_at": "2026-10-05T02:15:00.000Z"
+    },
+    {
+      "id": 4,
+      "name": "Obat Darah Tinggi (Amlodipine)",
+      "dosage": "1 Tablet sebelum tidur",
+      "time": "21:30 WIB",
+      "category": "Malam",
+      "status": "menunggu",
+      "created_at": "2026-10-01T08:00:00.000Z",
+      "updated_at": "2026-10-05T02:15:00.000Z"
+    }
+  ],
+  "caregivers": [
+    {
+      "id": 1,
+      "name": "Budi Santoso (Pendamping)",
+      "phone": "0812-3456-7890",
+      "relation": "Anak Kandung",
+      "status": "online",
+      "created_at": "2026-10-01T08:00:00.000Z",
+      "updated_at": "2026-10-05T02:15:00.000Z"
+    }
+  ]
+}
